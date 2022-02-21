@@ -13,19 +13,19 @@ const config = convict({
   dbUser: {
     format: String,
     default: "",
-    arg: "dbuser",
+    arg: "",
     env: "MONGODB_USER",
   },
   dbPass: {
     format: String,
     default: "",
-    arg: "dbpass",
+    arg: "",
     env: "MONGODB_PASS",
   },
   dbName: {
     format: String,
-    default: "",
-    arg: "dbName",
+    default: "FantomSecretBridgeDB",
+    arg: "FantomSecretBridgeDB",
     env: "MONGODB_NAME",
   },
   port: {
@@ -36,7 +36,8 @@ const config = convict({
   },
   db: {
     format: String,
-    default: "",
+    // default: process.env.MONGODB_URI_LOCAL,
+    default: "mongodb://localhost:27017/",
     arg: "db",
     env: "DB_URL",
   },

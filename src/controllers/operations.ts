@@ -59,7 +59,6 @@ export const newOperation = async (req: Request, res: Response) => {
         return;
     }
 
-
     const operation = new Operation({
         id: req.body.id,
         status: SwapStatus.SWAP_WAIT_SEND

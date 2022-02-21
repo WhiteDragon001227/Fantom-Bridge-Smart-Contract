@@ -35,6 +35,10 @@ const app = express();
 mongoose.Promise = bluebird;
 
 const mongoUrl = config.db;
+console.log('MongoURL', mongoUrl);
+console.log('DBName', config.dbName);
+console.log('DBUser', config.dbUser);
+console.log('DBPass', config.dbPass);
 mongoose
   .connect(mongoUrl, {
     dbName: config.dbName,
@@ -46,6 +50,9 @@ mongoose
   })
   .then(() => {
     /** ready to use. The `mongoose.connect()` promise resolves to undefined. */
+    logger.info(
+      "MongoDB connection success."
+    );
   })
   .catch((err) => {
     logger.error(
