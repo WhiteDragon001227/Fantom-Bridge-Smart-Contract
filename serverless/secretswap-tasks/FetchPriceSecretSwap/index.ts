@@ -20,6 +20,8 @@ const seed = Uint8Array.from([
 
 const sefiAddress = `${process.env["sefiAddress"] || "secret12q2c5s5we5zn9pq43l0rlsygtql6646my0sqfm"}`;
 const sefiPairAddress = `${process.env["sefiPairAddress"] || "secret1l56ke78aj9jxr4wu64h4rm20cnqxevzpf6tmfc"}`;
+const shdAddress = 'secret1qfql357amn448duf5gvp9gr48sxx9tsnhupu3d';
+const shdPairAddress = 'secret1wwt7nh3zyzessk8c5d98lpfsw79vzpsnerj6d0'
 
 const getSecretJs = (): CosmWasmClient => {
     return new CosmWasmClient(`${process.env["secretNodeURL"]}`,
@@ -52,7 +54,8 @@ const getScrtPrice = async (): Promise<number> => {
 class SecretSwapOracle implements PriceOracle {
 
     symbolMap = {
-        "SEFI": {address: sefiAddress, pair: sefiPairAddress},
+        "SEFI": {address: sefiAddress, pair: sefiPairAddress, decimals: 6},
+        "SHD": {address: shdAddress, pair: shdPairAddress, decimals: 8},
     }
 
     symbolToID = symbol => {
@@ -84,7 +87,7 @@ class SecretSwapOracle implements PriceOracle {
                     };
                 }
 
-                const priceRelative = await priceFromPoolInScrt(secretjs, swapAddress.address, swapAddress.pair, context);
+                const priceRelative = await priceFromPoolInScrt(secretjs, swapAddress.address, swapAddress.pair, swapAddress.decimals, context);
                 context.log(`Got relative price: ${JSON.stringify(priceRelative)}`);
                 return {
                     symbol: symbol,
@@ -120,16 +123,23 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
     );
     const db = await client.db(`${process.env["mongodbName"]}`);
 
-    const tokens = await db.collection("token_pairing").find({}).limit(100).toArray().catch(
+    let tokens = await db.collection("token_pairing").find({}).limit(100).toArray().catch(
         async (err: any) => {
             context.log(err);
             await client.close();
             throw new Error("Failed to get tokens from collection");
         }
     );
+    const secretTokens = await db.collection("secret_tokens").find({}).limit(100).toArray().catch(
+        (err: any) => {
+            context.log(err);
+            throw new Error("Failed to get tokens from collection");
+        }
+    );
+    tokens = tokens.concat(secretTokens);
     context.log(tokens);
 
-    const sefiTokens = tokens.filter(t => t?.display_props?.symbol === "SEFI");
+    const sefiTokens = tokens.filter(t => t?.display_props?.symbol === "SEFI" || t?.display_props?.symbol === "SHD");
 
     context.log(sefiTokens);
 
@@ -144,6 +154,7 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
         await client.close();
         throw new Error("Failed to get symbol for token");
     }
+
     context.log(`sefi token symbol: ${symbols}`);
     const prices: PriceResult[][] = await Promise.all(oracles.map(
         async o => (await o.getPrices(symbols, context)).filter(p => !isNaN(Number(p.price)))
@@ -179,6 +190,7 @@ const timerTrigger: AzureFunction = async function (context: Context, myTimer: a
         averagePrices.map(async p => {
             if (!isNaN(Number(p.price))) {
                 await db.collection("token_pairing").updateOne({"display_props.symbol": p.symbol}, { $set: { price: p.price }});
+                await db.collection("secret_tokens").updateOne({"display_props.symbol": p.symbol}, { $set: { price: p.price }});
             }
         })).catch(
         async (err) => {

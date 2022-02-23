@@ -1,6 +1,11 @@
 {
-  "name": "myTimer",
-  "type": "timerTrigger",
-  "direction": "in",
-  "schedule": "10 * * * * *"
+  "bindings": [
+    {
+      "name": "myTimer",
+      "type": "timerTrigger",
+      "direction": "in",
+      "schedule": "0,20,40 * * * * *"
+    }
+  ],
+  "scriptFile": "../dist/Health/index.js"
 }
